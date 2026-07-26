@@ -123,6 +123,7 @@ uint64_t Moudule_Base = -1;
             Moudule_Base = (uint64_t)GetGameModule_Base((char*)"freefire");
         }
         if (Moudule_Base == -1 || Moudule_Base == 0) return;
+        NSLog(@"[ESP] found game with base = 0x%llx", (unsigned long long)Moudule_Base);
     }
 
     uint64_t matchGame = getMatchGame(Moudule_Base);

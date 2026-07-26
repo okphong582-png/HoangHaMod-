@@ -51,14 +51,14 @@ vm_map_offset_t GetGameModule_Base(char* GameProcessName) {
         return 0;
     }
     
-    NSLog(@"found game with pid = %d", pid);
+    printf("found game with pid = %d\n", pid);
     
     kern_return_t kret = task_for_pid(mach_task_self(), pid, &get_task);
     
     if (get_task != MACH_PORT_NULL) {
         kern_return_t kr = mach_vm_region_recurse(get_task, &vmoffset, &vmsize, &nesting_depth, (vm_region_recurse_info_t)&vbr, &vbrcount);
         if (kr == KERN_SUCCESS) {
-            NSLog(@"found game with pid = %d, base = 0x%llx", pid, (uint64_t)vmoffset);
+            printf("found game with pid = %d, base = 0x%llx\n", pid, (unsigned long long)vmoffset);
             return vmoffset;
         }
     }
