@@ -114,9 +114,22 @@ uint64_t Moudule_Base = -1;
     NSMutableArray<NSValue *> *boxesMutable = [NSMutableArray arrayWithCapacity:boxCount];
     int countObject = 0;
 
-    if (Moudule_Base == -1) return;
+    if (Moudule_Base == -1 || Moudule_Base == 0) {
+        Moudule_Base = (uint64_t)GetGameModule_Base((char*)"freefireth");
+        if (Moudule_Base == 0 || Moudule_Base == -1) {
+            Moudule_Base = (uint64_t)GetGameModule_Base((char*)"freefiremax");
+        }
+        if (Moudule_Base == 0 || Moudule_Base == -1) {
+            Moudule_Base = (uint64_t)GetGameModule_Base((char*)"freefire");
+        }
+        if (Moudule_Base == -1 || Moudule_Base == 0) return;
+    }
 
     uint64_t matchGame = getMatchGame(Moudule_Base);
+    if (!isVaildPtr(matchGame)) {
+        Moudule_Base = 0;
+        return;
+    }
     uint64_t camera = CameraMain(matchGame);
     if (!isVaildPtr(camera)) return;
 
