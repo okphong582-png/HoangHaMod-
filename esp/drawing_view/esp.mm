@@ -8,6 +8,7 @@
 @property (nonatomic, strong) CADisplayLink *displayLink;
 @property (nonatomic, strong) CADisplayLink *displayLinkDATA;
 @property (nonatomic, strong) NSArray<NSValue *> *boxesData;
+@property (nonatomic, strong) UILabel *statusLabel;
 @end
 
 uint64_t Moudule_Base = -1;
@@ -20,6 +21,16 @@ uint64_t Moudule_Base = -1;
     if (self) {
         self.layers = [NSMutableArray array];
         self.backgroundColor = [UIColor clearColor];
+
+        self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 20, 500, 30)];
+        self.statusLabel.textColor = [UIColor yellowColor];
+        self.statusLabel.font = [UIFont boldSystemFontOfSize:14];
+        self.statusLabel.text = @"[HUD] Searching for Free Fire process...";
+        self.statusLabel.layer.shadowColor = [UIColor blackColor].CGColor;
+        self.statusLabel.layer.shadowOffset = CGSizeMake(1, 1);
+        self.statusLabel.layer.shadowOpacity = 1.0;
+        self.statusLabel.layer.shadowRadius = 1.0;
+        [self addSubview:self.statusLabel];
 
         static dispatch_once_t onceToken;
         dispatch_once(&onceToken, ^{
@@ -115,20 +126,38 @@ uint64_t Moudule_Base = -1;
     int countObject = 0;
 
     if (Moudule_Base == -1 || Moudule_Base == 0) {
+        int pid = -1;
         Moudule_Base = (uint64_t)GetGameModule_Base((char*)"freefireth");
+        if (Moudule_Base != 0 && Moudule_Base != -1) pid = GetGameProcesspid((char*)"freefireth");
         if (Moudule_Base == 0 || Moudule_Base == -1) {
             Moudule_Base = (uint64_t)GetGameModule_Base((char*)"freefiremax");
+            if (Moudule_Base != 0 && Moudule_Base != -1) pid = GetGameProcesspid((char*)"freefiremax");
         }
         if (Moudule_Base == 0 || Moudule_Base == -1) {
             Moudule_Base = (uint64_t)GetGameModule_Base((char*)"freefire");
+            if (Moudule_Base != 0 && Moudule_Base != -1) pid = GetGameProcesspid((char*)"freefire");
         }
-        if (Moudule_Base == -1 || Moudule_Base == 0) return;
+        if (Moudule_Base == -1 || Moudule_Base == 0) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self.statusLabel.textColor = [UIColor yellowColor];
+                self.statusLabel.text = @"[HUD] Searching for Free Fire process...";
+            });
+            return;
+        }
         NSLog(@"[ESP] found game with base = 0x%llx", (unsigned long long)Moudule_Base);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.statusLabel.textColor = [UIColor greenColor];
+            self.statusLabel.text = [NSString stringWithFormat:@"[HUD] Found Free Fire (PID: %d | Base: 0x%llx)", pid, (unsigned long long)Moudule_Base];
+        });
     }
 
     uint64_t matchGame = getMatchGame(Moudule_Base);
     if (!isVaildPtr(matchGame)) {
         Moudule_Base = 0;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.statusLabel.textColor = [UIColor yellowColor];
+            self.statusLabel.text = @"[HUD] Searching for Free Fire process...";
+        });
         return;
     }
     uint64_t camera = CameraMain(matchGame);
