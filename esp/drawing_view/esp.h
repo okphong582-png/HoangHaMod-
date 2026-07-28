@@ -1,17 +1,30 @@
+#ifndef esp_h
+#define esp_h
+
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import "../Core/GameLogic.h"
 
-struct ESPBox {
-    Vector3 pos;
-    CGFloat width;
-    CGFloat height;
+struct ESPPlayerData {
+    Vector3 headPos;
+    Vector3 feetPos;
+    float width;
+    float height;
+    float distance;
+    int curHP;
+    int maxHP;
+    char name[64];
 };
 
 @interface ESP_View : UIView
 
+@property (nonatomic, assign) BOOL enableBox;
+@property (nonatomic, assign) BOOL enableLine;
+@property (nonatomic, assign) BOOL enableName;
+@property (nonatomic, assign) BOOL enableInfo;
+
 - (instancetype)initWithFrame:(CGRect)frame;
-- (void)setBoxes:(NSArray<NSValue *> *)boxes;
-- (void)updateBoxes;
 - (void)update_data;
 @end
+
+#endif

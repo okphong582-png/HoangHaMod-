@@ -95,7 +95,7 @@
     ESP_View *espView = [[ESP_View alloc] initWithFrame:CGRectZero];
     espView.translatesAutoresizingMaskIntoConstraints = NO;
     espView.backgroundColor = [UIColor clearColor];
-    espView.userInteractionEnabled = NO;
+    espView.userInteractionEnabled = YES;
     [espView hideViewFromCapture:NO]; // Hide ESP when taking a screenshot
     
     
