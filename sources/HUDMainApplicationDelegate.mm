@@ -95,11 +95,12 @@
     ESP_View *espView = [[ESP_View alloc] initWithFrame:CGRectZero];
     espView.translatesAutoresizingMaskIntoConstraints = NO;
     espView.backgroundColor = [UIColor clearColor];
-    espView.userInteractionEnabled = YES;
+    espView.userInteractionEnabled = NO;
     [espView hideViewFromCapture:NO]; // Hide ESP when taking a screenshot
     
     
     UIView *containerView = container.view;
+    containerView.userInteractionEnabled = NO;
     [containerView addSubview:espView];
 
     [NSLayoutConstraint activateConstraints:@[
@@ -110,6 +111,7 @@
     ]];
 
     self.window = [[HUDMainWindow alloc] initWithFrame:CGRectZero];
+    self.window.userInteractionEnabled = NO;
     [self.window setRootViewController:container];
 
     UIInterfaceOrientation curOrientation = [self currentInterfaceOrientation];

@@ -14,4 +14,12 @@
 - (BOOL)_isSecure { return YES; }
 - (BOOL)_shouldCreateContextAsSecure { return YES; }
 
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+    return nil; // Pass 100% of touch events through to Free Fire!
+}
+
+- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event {
+    return NO; // Pass 100% of touch events through to Free Fire!
+}
+
 @end
