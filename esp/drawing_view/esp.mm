@@ -46,11 +46,65 @@ static pid_t g_GamePID = -1;
 }
 
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
-    UIView *hitView = [super hitTest:point withEvent:event];
-    if (hitView == self) {
-        return nil; // Transparent background canvas pass touches through to Free Fire!
+    // Expanded touch area around floating button for easy tapping
+    CGRect btnTouchRect = CGRectInset(self.floatingButton.frame, -20, -20);
+    if (CGRectContainsPoint(btnTouchRect, point)) {
+        return self;
     }
-    return hitView; // Floating button, menu panel & switches receive touches!
+    if (!self.menuPanel.hidden && CGRectContainsPoint(self.menuPanel.frame, point)) {
+        return self;
+    }
+    return nil; // Transparent background canvas passes touches through to Free Fire!
+}
+
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    UITouch *touch = [touches anyObject];
+    if (!touch) return;
+    CGPoint pt = [touch locationInView:self];
+
+    // Check tap on floating button
+    CGRect btnTouchRect = CGRectInset(self.floatingButton.frame, -20, -20);
+    if (CGRectContainsPoint(btnTouchRect, pt)) {
+        [self toggleMenu];
+        return;
+    }
+
+    // Check tap inside menu panel when open
+    if (!self.menuPanel.hidden) {
+        CGPoint menuPt = [touch locationInView:self.menuPanel];
+        CGFloat menuW = self.menuPanel.bounds.size.width;
+        CGFloat menuH = self.menuPanel.bounds.size.height;
+
+        if (CGRectContainsPoint(self.menuPanel.bounds, menuPt)) {
+            // Close button area (top right)
+            if (menuPt.x >= menuW - 50 && menuPt.y <= 45) {
+                [self toggleMenu];
+                return;
+            }
+
+            // Rescan button area (bottom)
+            if (menuPt.y >= menuH - 50) {
+                [self rescanGameProcess];
+                return;
+            }
+
+            // Feature rows (y between 80 and 260)
+            if (menuPt.y >= 80 && menuPt.y <= 260) {
+                int index = (menuPt.y - 80) / 44;
+                if (index >= 0 && index < 4) {
+                    UISwitch *sw = nil;
+                    if (index == 0) { self.enableBox = !self.enableBox; sw = self.boxSwitch; }
+                    else if (index == 1) { self.enableLine = !self.enableLine; sw = self.lineSwitch; }
+                    else if (index == 2) { self.enableName = !self.enableName; sw = self.nameSwitch; }
+                    else if (index == 3) { self.enableInfo = !self.enableInfo; sw = self.infoSwitch; }
+
+                    if (sw) [sw setOn:!sw.isOn animated:YES];
+                    [self setNeedsDisplay];
+                    return;
+                }
+            }
+        }
+    }
 }
 
 - (void)setupFloatingMenu {
