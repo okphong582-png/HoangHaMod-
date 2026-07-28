@@ -18,11 +18,6 @@ struct ESPPlayerData {
 
 @interface ESP_View : UIView
 
-@property (nonatomic, assign) BOOL enableBox;
-@property (nonatomic, assign) BOOL enableLine;
-@property (nonatomic, assign) BOOL enableName;
-@property (nonatomic, assign) BOOL enableInfo;
-
 - (instancetype)initWithFrame:(CGRect)frame;
 - (void)update_data;
 @end
