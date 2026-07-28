@@ -8,7 +8,6 @@
 @property (nonatomic, strong) CADisplayLink *displayLink;
 @property (nonatomic, strong) CADisplayLink *displayLinkDATA;
 @property (nonatomic, strong) NSArray<NSValue *> *boxesData;
-@property (nonatomic, strong) UILabel *statusLabel;
 @end
 
 uint64_t Moudule_Base = -1;
@@ -21,16 +20,6 @@ uint64_t Moudule_Base = -1;
     if (self) {
         self.layers = [NSMutableArray array];
         self.backgroundColor = [UIColor clearColor];
-
-        self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 20, 500, 30)];
-        self.statusLabel.textColor = [UIColor yellowColor];
-        self.statusLabel.font = [UIFont boldSystemFontOfSize:14];
-        self.statusLabel.text = @"[HUD] Searching for Free Fire process...";
-        self.statusLabel.layer.shadowColor = [UIColor blackColor].CGColor;
-        self.statusLabel.layer.shadowOffset = CGSizeMake(1, 1);
-        self.statusLabel.layer.shadowOpacity = 1.0;
-        self.statusLabel.layer.shadowRadius = 1.0;
-        [self addSubview:self.statusLabel];
 
         static dispatch_once_t onceToken;
         dispatch_once(&onceToken, ^{
@@ -113,8 +102,6 @@ uint64_t Moudule_Base = -1;
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
-static int g_GamePID = -1;
-
 - (void)update_data
 {
     CFTimeInterval t = CACurrentMediaTime();
@@ -127,85 +114,22 @@ static int g_GamePID = -1;
     NSMutableArray<NSValue *> *boxesMutable = [NSMutableArray arrayWithCapacity:boxCount];
     int countObject = 0;
 
-    if (g_GamePID > 0) {
-        if (kill(g_GamePID, 0) != 0) {
-            Moudule_Base = 0;
-            g_GamePID = -1;
-        }
-    }
-
-    if (Moudule_Base == -1 || Moudule_Base == 0) {
-        const char* targets[] = {"freefireth", "freefiremax", "freefire", "FreeFire", "ShadowTrackerExtra"};
-        for (int i = 0; i < 5; i++) {
-            pid_t pid = GetGameProcesspid((char*)targets[i]);
-            if (pid > 0) {
-                vm_map_offset_t base = GetGameModule_Base((char*)targets[i]);
-                if (base > 0 && isVaildPtr((long)base)) {
-                    Moudule_Base = (uint64_t)base;
-                    g_GamePID = pid;
-                    break;
-                }
-            }
-        }
-
-        if (Moudule_Base == -1 || Moudule_Base == 0) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                self.statusLabel.textColor = [UIColor yellowColor];
-                self.statusLabel.text = @"[HUD] Searching for Free Fire process...";
-            });
-            self.boxes = @[];
-            [self setNeedsDisplay];
-            return;
-        }
-
-        NSLog(@"[ESP] found game with pid = %d, base = 0x%llx", g_GamePID, (unsigned long long)Moudule_Base);
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self.statusLabel.textColor = [UIColor greenColor];
-            self.statusLabel.text = [NSString stringWithFormat:@"[HUD] Found Free Fire (PID: %d | Base: 0x%llx)", g_GamePID, (unsigned long long)Moudule_Base];
-        });
-    }
+    if (Moudule_Base == -1) return;
 
     uint64_t matchGame = getMatchGame(Moudule_Base);
-    if (!isVaildPtr(matchGame)) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self.statusLabel.textColor = [UIColor orangeColor];
-            self.statusLabel.text = [NSString stringWithFormat:@"[HUD] Free Fire Found (PID: %d) - Waiting for Match...", g_GamePID];
-        });
-        self.boxes = @[];
-        [self setNeedsDisplay];
-        return;
-    }
-
     uint64_t camera = CameraMain(matchGame);
-    if (!isVaildPtr(camera)) {
-        self.boxes = @[];
-        [self setNeedsDisplay];
-        return;
-    }
+    if (!isVaildPtr(camera)) return;
 
     uint64_t match = getMatch(matchGame);
-    if (!isVaildPtr(match)) {
-        self.boxes = @[];
-        [self setNeedsDisplay];
-        return;
-    }
+    if (!isVaildPtr(match)) return;
 
     uint64_t myPawnObject = getLocalPlayer(match);
-    if (!isVaildPtr(myPawnObject)) {
-        self.boxes = @[];
-        [self setNeedsDisplay];
-        return;
-    }
+    if (!isVaildPtr(myPawnObject)) return;
     
-    dispatch_async(dispatch_get_main_queue(), ^{
-        self.statusLabel.textColor = [UIColor colorWithRed:0.0 green:1.0 blue:0.5 alpha:1.0];
-        self.statusLabel.text = [NSString stringWithFormat:@"[HUD] Free Fire In-Game (PID: %d)", g_GamePID];
-    });
-    
-    uint64_t mainCameraTransform = ReadAddr<uint64_t>(myPawnObject + 0x24C);
+    uint64_t mainCameraTransform = ReadAddr<uint64_t>(myPawnObject + AotForm::Offsets::MainCameraTransform);
     Vector3 myLocation = getPositionExt(mainCameraTransform);
     
-    uint64_t player = ReadAddr<uint64_t>(match + 0x68);
+    uint64_t player = ReadAddr<uint64_t>(match + AotForm::Offsets::DictionaryEntities);
     uint64_t tValue = ReadAddr<uint64_t>(player + 0x28);
     int coutValue = ReadAddr<int>(tValue + 0x18);
     

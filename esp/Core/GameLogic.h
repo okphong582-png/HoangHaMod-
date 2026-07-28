@@ -3,6 +3,7 @@
 
 #import "MemoryUtils.h"
 #import "UnityMath.h"
+#import "Offsets.h"
 
 #pragma mark - Function Game
 

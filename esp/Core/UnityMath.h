@@ -5,6 +5,7 @@
 #import "Quaternion.h"
 #import "MemoryUtils.h"
 #import "utf.h"
+#import "Offsets.h"
 #import <Foundation/Foundation.h>
 
 #pragma mark - Struct Game

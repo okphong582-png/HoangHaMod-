@@ -4,7 +4,6 @@
 #include <mach/mach.h>
 #include <sys/sysctl.h>
 #include <string>
-#include <stdio.h>
 
 #pragma mark - Get PID
 
@@ -19,7 +18,7 @@ extern "C" kern_return_t mach_vm_region_recurse(vm_map_t                 map,
                                                 mach_msg_type_number_t   *infoCnt);
 
 inline bool isVaildPtr(long addr){
-    return (uint64_t)addr >= 0x100000000ULL && (uint64_t)addr <= 0x7FFFFFFFFF00ULL;
+    return addr > 0x100000000 && addr < 0x1600000000;
 }
 
 pid_t GetGameProcesspid(char* GameProcessName);
