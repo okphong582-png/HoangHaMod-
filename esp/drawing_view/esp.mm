@@ -6,19 +6,12 @@
 
 uint64_t Moudule_Base = 0;
 static pid_t g_GamePID = -1;
+static char g_StatusText[256] = "[HUD] Searching for Free Fire process...";
+static UIColor *g_StatusColor = nil;
 
 @interface ESP_View ()
 @property (nonatomic, strong) CADisplayLink *displayLinkDATA;
 @property (nonatomic, strong) NSMutableArray<NSValue *> *playersData;
-
-// Floating Menu UI
-@property (nonatomic, strong) UIButton *floatingButton;
-@property (nonatomic, strong) UIView *menuPanel;
-@property (nonatomic, strong) UILabel *statusLabel;
-@property (nonatomic, strong) UISwitch *boxSwitch;
-@property (nonatomic, strong) UISwitch *lineSwitch;
-@property (nonatomic, strong) UISwitch *nameSwitch;
-@property (nonatomic, strong) UISwitch *infoSwitch;
 @end
 
 @implementation ESP_View
@@ -28,7 +21,7 @@ static pid_t g_GamePID = -1;
     self = [super initWithFrame:frame];
     if (self) {
         self.backgroundColor = [UIColor clearColor];
-        self.userInteractionEnabled = YES;
+        self.userInteractionEnabled = NO;
 
         _enableBox = YES;
         _enableLine = YES;
@@ -36,149 +29,12 @@ static pid_t g_GamePID = -1;
         _enableInfo = YES;
 
         _playersData = [NSMutableArray array];
-
-        [self setupFloatingMenu];
+        g_StatusColor = [UIColor yellowColor];
 
         self.displayLinkDATA = [CADisplayLink displayLinkWithTarget:self selector:@selector(update_data)];
         [self.displayLinkDATA addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
     }
     return self;
-}
-
-- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
-    UIView *hitView = [super hitTest:point withEvent:event];
-    if (hitView == self) {
-        return nil; // Pass touches through transparent canvas to the game underneath!
-    }
-    return hitView; // Enable touch interaction for floating button & mod menu!
-}
-
-- (void)setupFloatingMenu {
-    // 1. Floating Icon Button (Draggable)
-    self.floatingButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    self.floatingButton.frame = CGRectMake(30, 80, 50, 50);
-    self.floatingButton.backgroundColor = [UIColor colorWithRed:0.08 green:0.12 blue:0.20 alpha:0.90];
-    self.floatingButton.layer.cornerRadius = 25;
-    self.floatingButton.layer.borderColor = [UIColor colorWithRed:0.0 green:0.75 blue:1.0 alpha:0.9].CGColor;
-    self.floatingButton.layer.borderWidth = 2.0;
-    self.floatingButton.layer.shadowColor = [UIColor colorWithRed:0.0 green:0.75 blue:1.0 alpha:0.6].CGColor;
-    self.floatingButton.layer.shadowOffset = CGSizeZero;
-    self.floatingButton.layer.shadowRadius = 6.0;
-    self.floatingButton.layer.shadowOpacity = 1.0;
-    [self.floatingButton setTitle:@"⚡" forState:UIControlStateNormal];
-    [self.floatingButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    self.floatingButton.titleLabel.font = [UIFont boldSystemFontOfSize:22];
-    [self.floatingButton addTarget:self action:@selector(toggleMenu) forControlEvents:UIControlEventTouchUpInside];
-    [self addSubview:self.floatingButton];
-
-    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
-    [self.floatingButton addGestureRecognizer:pan];
-
-    // 2. Floating Menu Panel
-    CGFloat menuW = 280;
-    CGFloat menuH = 310;
-    self.menuPanel = [[UIView alloc] initWithFrame:CGRectMake((sWidth - menuW) / 2, (sHeight - menuH) / 2, menuW, menuH)];
-    self.menuPanel.backgroundColor = [UIColor colorWithRed:0.08 green:0.10 blue:0.16 alpha:0.94];
-    self.menuPanel.layer.cornerRadius = 16.0;
-    self.menuPanel.layer.borderColor = [UIColor colorWithRed:0.0 green:0.75 blue:1.0 alpha:0.7].CGColor;
-    self.menuPanel.layer.borderWidth = 1.5;
-    self.menuPanel.layer.shadowColor = [UIColor blackColor].CGColor;
-    self.menuPanel.layer.shadowOffset = CGSizeMake(0, 4);
-    self.menuPanel.layer.shadowOpacity = 0.5;
-    self.menuPanel.layer.shadowRadius = 10.0;
-    self.menuPanel.hidden = YES;
-    [self addSubview:self.menuPanel];
-
-    // Menu Title Bar
-    UILabel *headerTitle = [[UILabel alloc] initWithFrame:CGRectMake(16, 12, 200, 24)];
-    headerTitle.text = @"⚡ AOTFORM ESP";
-    headerTitle.textColor = [UIColor colorWithRed:0.2 green:0.8 blue:1.0 alpha:1.0];
-    headerTitle.font = [UIFont boldSystemFontOfSize:16];
-    [self.menuPanel addSubview:headerTitle];
-
-    UIButton *closeBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    closeBtn.frame = CGRectMake(menuW - 38, 10, 28, 28);
-    [closeBtn setTitle:@"✕" forState:UIControlStateNormal];
-    [closeBtn setTitleColor:[UIColor colorWithWhite:0.7 alpha:1.0] forState:UIControlStateNormal];
-    closeBtn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
-    [closeBtn addTarget:self action:@selector(toggleMenu) forControlEvents:UIControlEventTouchUpInside];
-    [self.menuPanel addSubview:closeBtn];
-
-    // Divider Line
-    UIView *divider = [[UIView alloc] initWithFrame:CGRectMake(12, 42, menuW - 24, 1)];
-    divider.backgroundColor = [UIColor colorWithWhite:0.25 alpha:0.5];
-    [self.menuPanel addSubview:divider];
-
-    // Status Badge
-    self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(14, 48, menuW - 28, 34)];
-    self.statusLabel.numberOfLines = 2;
-    self.statusLabel.textColor = [UIColor yellowColor];
-    self.statusLabel.font = [UIFont systemFontOfSize:11];
-    self.statusLabel.text = @"🔴 Searching for Free Fire process...";
-    [self.menuPanel addSubview:self.statusLabel];
-
-    // Feature Toggles
-    NSArray *titles = @[@"Khung ESP (Box 2D)", @"Đường Kẻ (SnapLine)", @"Tên Người Chơi (Name)", @"Máu & Khoảng Cách (HP/Dist)"];
-    NSArray *selectors = @[@"boxChanged:", @"lineChanged:", @"nameChanged:", @"infoChanged:"];
-    NSMutableArray *switches = [NSMutableArray array];
-
-    for (int i = 0; i < 4; i++) {
-        CGFloat yPos = 90 + i * 44;
-        UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(16, yPos + 4, 170, 24)];
-        label.text = titles[i];
-        label.textColor = [UIColor whiteColor];
-        label.font = [UIFont systemFontOfSize:13 weight:UIFontWeightMedium];
-        [self.menuPanel addSubview:label];
-
-        UISwitch *sw = [[UISwitch alloc] initWithFrame:CGRectMake(menuW - 66, yPos, 0, 0)];
-        sw.on = YES;
-        sw.onTintColor = [UIColor colorWithRed:0.0 green:0.65 blue:1.0 alpha:1.0];
-        [sw addTarget:self action:NSSelectorFromString(selectors[i]) forControlEvents:UIControlEventValueChanged];
-        [self.menuPanel addSubview:sw];
-        [switches addObject:sw];
-    }
-
-    self.boxSwitch = switches[0];
-    self.lineSwitch = switches[1];
-    self.nameSwitch = switches[2];
-    self.infoSwitch = switches[3];
-
-    // Rescan Base Button
-    UIButton *rescanBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    rescanBtn.frame = CGRectMake(14, menuH - 42, menuW - 28, 30);
-    rescanBtn.backgroundColor = [UIColor colorWithRed:0.15 green:0.20 blue:0.32 alpha:0.9];
-    rescanBtn.layer.cornerRadius = 8.0;
-    rescanBtn.layer.borderColor = [UIColor colorWithRed:0.2 green:0.6 blue:1.0 alpha:0.5].CGColor;
-    rescanBtn.layer.borderWidth = 1.0;
-    [rescanBtn setTitle:@"🔄 Quét Lại Game (Rescan Base)" forState:UIControlStateNormal];
-    [rescanBtn setTitleColor:[UIColor colorWithRed:0.4 green:0.8 blue:1.0 alpha:1.0] forState:UIControlStateNormal];
-    rescanBtn.titleLabel.font = [UIFont systemFontOfSize:12 weight:UIFontWeightBold];
-    [rescanBtn addTarget:self action:@selector(rescanGameProcess) forControlEvents:UIControlEventTouchUpInside];
-    [self.menuPanel addSubview:rescanBtn];
-}
-
-- (void)toggleMenu {
-    self.menuPanel.hidden = !self.menuPanel.hidden;
-}
-
-- (void)handlePan:(UIPanGestureRecognizer *)pan {
-    CGPoint translation = [pan translationInView:self];
-    CGPoint newCenter = CGPointMake(pan.view.center.x + translation.x, pan.view.center.y + translation.y);
-    newCenter.x = MAX(30, MIN(self.bounds.size.width - 30, newCenter.x));
-    newCenter.y = MAX(30, MIN(self.bounds.size.height - 30, newCenter.y));
-    pan.view.center = newCenter;
-    [pan setTranslation:CGPointZero inView:self];
-}
-
-- (void)boxChanged:(UISwitch *)sender  { self.enableBox = sender.isOn;  [self setNeedsDisplay]; }
-- (void)lineChanged:(UISwitch *)sender { self.enableLine = sender.isOn; [self setNeedsDisplay]; }
-- (void)nameChanged:(UISwitch *)sender { self.enableName = sender.isOn; [self setNeedsDisplay]; }
-- (void)infoChanged:(UISwitch *)sender { self.enableInfo = sender.isOn; [self setNeedsDisplay]; }
-
-- (void)rescanGameProcess {
-    Moudule_Base = 0;
-    g_GamePID = -1;
-    [self update_data];
 }
 
 - (void)dealloc {
@@ -188,10 +44,18 @@ static pid_t g_GamePID = -1;
 
 - (void)update_data
 {
-    // Auto scan for game process if not connected
+    // Check process health
+    if (g_GamePID > 0) {
+        if (kill(g_GamePID, 0) != 0) {
+            Moudule_Base = 0;
+            g_GamePID = -1;
+        }
+    }
+
+    // Auto scan for game process base address
     if (Moudule_Base == 0 || g_GamePID <= 0) {
-        const char* targets[] = {"freefireth", "freefiremax", "freefire", "FreeFire"};
-        for (int i = 0; i < 4; i++) {
+        const char* targets[] = {"freefireth", "freefiremax", "freefire", "FreeFire", "ShadowTrackerExtra"};
+        for (int i = 0; i < 5; i++) {
             pid_t pid = GetGameProcesspid((char*)targets[i]);
             if (pid > 0) {
                 vm_map_offset_t base = GetGameModule_Base((char*)targets[i]);
@@ -205,23 +69,23 @@ static pid_t g_GamePID = -1;
     }
 
     if (Moudule_Base == 0 || g_GamePID <= 0) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self.statusLabel.textColor = [UIColor colorWithRed:1.0 green:0.4 blue:0.4 alpha:1.0];
-            self.statusLabel.text = @"🔴 Chưa tìm thấy tiến trình Free Fire\n(Đang chờ mở game...)";
-        });
+        snprintf(g_StatusText, sizeof(g_StatusText), "[HUD] Searching for Free Fire process...");
+        g_StatusColor = [UIColor colorWithRed:1.0 green:0.8 blue:0.2 alpha:1.0];
         [self.playersData removeAllObjects];
-        [self setNeedsDisplay];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self setNeedsDisplay];
+        });
         return;
     }
 
     uint64_t matchGame = getMatchGame(Moudule_Base);
     if (!isVaildPtr(matchGame)) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self.statusLabel.textColor = [UIColor yellowColor];
-            self.statusLabel.text = [NSString stringWithFormat:@"🟡 Đã tìm thấy PID: %d | Base: 0x%llX\n(Chờ vào trận đấu...)", g_GamePID, (unsigned long long)Moudule_Base];
-        });
+        snprintf(g_StatusText, sizeof(g_StatusText), "[HUD] Free Fire (PID: %d | Base: 0x%llX) - Waiting for Match...", g_GamePID, (unsigned long long)Moudule_Base);
+        g_StatusColor = [UIColor orangeColor];
         [self.playersData removeAllObjects];
-        [self setNeedsDisplay];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self setNeedsDisplay];
+        });
         return;
     }
 
@@ -230,12 +94,12 @@ static pid_t g_GamePID = -1;
     uint64_t myPawnObject = getLocalPlayer(match);
 
     if (!isVaildPtr(camera) || !isVaildPtr(match) || !isVaildPtr(myPawnObject)) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self.statusLabel.textColor = [UIColor yellowColor];
-            self.statusLabel.text = [NSString stringWithFormat:@"🟡 Đã tìm thấy PID: %d\n(Đang tải dữ liệu trận đấu...)", g_GamePID];
-        });
+        snprintf(g_StatusText, sizeof(g_StatusText), "[HUD] Free Fire (PID: %d) - Loading Match Data...", g_GamePID);
+        g_StatusColor = [UIColor yellowColor];
         [self.playersData removeAllObjects];
-        [self setNeedsDisplay];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self setNeedsDisplay];
+        });
         return;
     }
 
@@ -290,10 +154,8 @@ static pid_t g_GamePID = -1;
         [dataMutable addObject:[NSValue valueWithBytes:&pData objCType:@encode(ESPPlayerData)]];
     }
 
-    dispatch_async(dispatch_get_main_queue(), ^{
-        self.statusLabel.textColor = [UIColor greenColor];
-        self.statusLabel.text = [NSString stringWithFormat:@"🟢 In-Game (PID: %d)\n(Đã phát hiện: %d địch)", g_GamePID, (int)dataMutable.count];
-    });
+    snprintf(g_StatusText, sizeof(g_StatusText), "[AOTFORM ESP] 🟢 In-Game (PID: %d | Enemies: %d)", g_GamePID, (int)dataMutable.count);
+    g_StatusColor = [UIColor colorWithRed:0.0 green:1.0 blue:0.5 alpha:1.0];
 
     self.playersData = dataMutable;
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -307,6 +169,14 @@ static pid_t g_GamePID = -1;
     CGContextRef ctx = UIGraphicsGetCurrentContext();
     if (!ctx) return;
 
+    // Draw Status HUD Overlay (Top-left)
+    NSString *statusStr = [NSString stringWithUTF8String:g_StatusText];
+    NSDictionary *statusAttr = @{
+        NSFontAttributeName: [UIFont boldSystemFontOfSize:13],
+        NSForegroundColorAttributeName: g_StatusColor ? g_StatusColor : [UIColor yellowColor]
+    };
+    [statusStr drawAtPoint:CGPointMake(20, 25) withAttributes:statusAttr];
+
     for (NSValue *val in self.playersData) {
         ESPPlayerData pData;
         [val getValue:&pData];
@@ -314,9 +184,9 @@ static pid_t g_GamePID = -1;
         float x = pData.headPos.x - pData.width * 0.5f;
         float y = pData.headPos.y;
 
-        // 1. Draw ESP Line (Snapline from top center to enemy head)
+        // 1. Draw SnapLine (Top-Center of screen to Enemy Head)
         if (self.enableLine) {
-            CGContextSetStrokeColorWithColor(ctx, [UIColor colorWithRed:1.0 green:0.2 blue:0.2 alpha:0.8].CGColor);
+            CGContextSetStrokeColorWithColor(ctx, [UIColor colorWithRed:1.0 green:0.2 blue:0.2 alpha:0.85].CGColor);
             CGContextSetLineWidth(ctx, 1.2);
             CGContextMoveToPoint(ctx, sWidth / 2, 0);
             CGContextAddLineToPoint(ctx, pData.headPos.x, pData.headPos.y);
@@ -343,7 +213,7 @@ static pid_t g_GamePID = -1;
 
         // 4. Draw Distance & Health Bar
         if (self.enableInfo) {
-            // Distance text
+            // Distance text (meters)
             NSString *infoStr = [NSString stringWithFormat:@"%.0fm", pData.distance];
             NSDictionary *infoAttr = @{
                 NSFontAttributeName: [UIFont systemFontOfSize:10 weight:UIFontWeightBold],
@@ -352,7 +222,7 @@ static pid_t g_GamePID = -1;
             CGSize infoSize = [infoStr sizeWithAttributes:infoAttr];
             [infoStr drawAtPoint:CGPointMake(pData.headPos.x - infoSize.width / 2, y + pData.height + 2) withAttributes:infoAttr];
 
-            // Health bar
+            // Health Bar
             float hpPercent = (float)pData.curHP / (float)pData.maxHP;
             hpPercent = MAX(0.0f, MIN(1.0f, hpPercent));
 

@@ -18,7 +18,7 @@ extern "C" kern_return_t mach_vm_region_recurse(vm_map_t                 map,
                                                 mach_msg_type_number_t   *infoCnt);
 
 inline bool isVaildPtr(long addr){
-    return addr > 0x100000000 && addr < 0x1600000000;
+    return (uint64_t)addr >= 0x100000000ULL && (uint64_t)addr <= 0x7FFFFFFFFF00ULL;
 }
 
 pid_t GetGameProcesspid(char* GameProcessName);
