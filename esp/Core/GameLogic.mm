@@ -4,7 +4,7 @@
 
 uint64_t getMatchGame(uint64_t Moudule_Base) {
     uint64_t GameFacade_TypeInfo = ReadAddr<uint64_t>(Moudule_Base + 0xA988FDC);
-    uint64_t GameFacade_Static = ReadAddr<uint64_t>(GameFacade_TypeInfo + 0x5C);
+    uint64_t GameFacade_Static = ReadAddr<uint64_t>(GameFacade_TypeInfo + 0xB8);
     return ReadAddr<uint64_t>(GameFacade_Static + 0x0);
 }
 
