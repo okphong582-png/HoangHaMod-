@@ -9,7 +9,7 @@ pid_t GetGameProcesspid(char* GameProcessName) {
         err = errno;
     }
     
-    if (err == 0) {
+    if (err == 0 && length > 0) {
         struct kinfo_proc *procBuffer = (struct kinfo_proc *)malloc(length);
         if (procBuffer == NULL) {
             return -1;
@@ -27,7 +27,7 @@ pid_t GetGameProcesspid(char* GameProcessName) {
             const char *procname = procBuffer[i].kp_proc.p_comm;
             pid_t Processpid = procBuffer[i].kp_proc.p_pid;
             
-            if (strstr(procname, GameProcessName)) {
+            if (procname && GameProcessName && strcasestr(procname, GameProcessName)) {
                 free(procBuffer);
                 return Processpid;
             }
@@ -40,27 +40,34 @@ pid_t GetGameProcesspid(char* GameProcessName) {
 }
 
 vm_map_offset_t GetGameModule_Base(char* GameProcessName) {
-    vm_map_offset_t vmoffset = 0;
-    vm_map_size_t vmsize = 0;
-    uint32_t nesting_depth = 0;
-    struct vm_region_submap_info_64 vbr;
-    mach_msg_type_number_t vbrcount = 16;
-    
     pid_t pid = GetGameProcesspid(GameProcessName);
     if (pid == -1) {
         return 0;
     }
     
-    printf("found game with pid = %d\n", pid);
-    
     kern_return_t kret = task_for_pid(mach_task_self(), pid, &get_task);
+    if (kret != KERN_SUCCESS || get_task == MACH_PORT_NULL) {
+        return 0;
+    }
     
-    if (get_task != MACH_PORT_NULL) {
+    vm_map_offset_t vmoffset = 0x100000000;
+    vm_map_size_t vmsize = 0;
+    uint32_t nesting_depth = 0;
+    struct vm_region_submap_info_64 vbr;
+    mach_msg_type_number_t vbrcount = 16;
+    
+    while (1) {
         kern_return_t kr = mach_vm_region_recurse(get_task, &vmoffset, &vmsize, &nesting_depth, (vm_region_recurse_info_t)&vbr, &vbrcount);
-        if (kr == KERN_SUCCESS) {
+        if (kr != KERN_SUCCESS) break;
+        if (vbr.is_submap) {
+            nesting_depth++;
+            continue;
+        }
+        if (vmoffset >= 0x100000000) {
             printf("found game with pid = %d, base = 0x%llx\n", pid, (unsigned long long)vmoffset);
             return vmoffset;
         }
+        vmoffset += vmsize;
     }
     
     return 0;
