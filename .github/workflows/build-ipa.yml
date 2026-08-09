@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -30,7 +30,7 @@ jobs:
           zip -r HoangHaMod_v3.0_VIP.ipa Payload
 
       - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: HoangHaMod_v3.0_VIP.ipa
           path: HoangHaMod_v3.0_VIP.ipa
