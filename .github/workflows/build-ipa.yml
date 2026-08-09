@@ -34,6 +34,9 @@ jobs:
             ios-app/Sources/Views/MainDashboardView.swift
 
           cp ios-app/Resources/Info.plist Payload/HoangHaMod.app/Info.plist
+          cp hoangha_vip.png Payload/HoangHaMod.app/AppIcon60x60@2x.png 2>/dev/null || true
+          cp hoangha_vip.png Payload/HoangHaMod.app/icon.png 2>/dev/null || true
+          echo -n "APPL????" > Payload/HoangHaMod.app/PkgInfo
 
       - name: Package Payload into IPA
         run: |
