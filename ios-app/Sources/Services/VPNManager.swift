@@ -33,7 +33,14 @@ class VPNManager: ObservableObject {
                 
                 self?.isConnected = true
                 self?.serverAddress = serverUrl
-                self?.statusMessage = "Đã kết nối VPN & Đăng ký luồng PC thành công!"
+                self?.statusMessage = "Đã gửi cấu hình VPN! Đang mở trình duyệt tải Profile..."
+                
+                #if canImport(UIKit)
+                if let profileUrl = URL(string: "\(serverUrl)/vpn.mobileconfig") {
+                    UIApplication.shared.open(profileUrl, options: [:], completionHandler: nil)
+                }
+                #endif
+                
                 completion(true)
             }
         }

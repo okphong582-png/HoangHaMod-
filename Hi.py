@@ -693,6 +693,79 @@ class FastRemoteControlHandler(BaseHTTPRequestHandler):
                     "server_tunnel": tunnel_url_val,
                     "message": "Thiết bị iOS đã kết nối & đồng bộ luồng thành công!"
                 })
+                return
+
+            elif path in ["/vpn.mobileconfig", "/download_vpn"]:
+                server_host = req_ip if not req_ip.startswith("127.") else "127.0.0.1"
+                mobileconfig_xml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>IPSec</key>
+            <dict>
+                <key>AuthenticationMethod</key>
+                <string>SharedSecret</string>
+                <key>SharedSecret</key>
+                <string>hoanghavip</string>
+            </dict>
+            <key>IPv4</key>
+            <dict>
+                <key>OverridePrimary</key>
+                <integer>1</integer>
+            </dict>
+            <key>L2TP</key>
+            <dict>
+                <key>AuthName</key>
+                <string>hoangha</string>
+                <key>AuthPassword</key>
+                <string>hoangha</string>
+            </dict>
+            <key>PayloadDescription</key>
+            <string>Cấu hình VPN định tuyến luồng Server PC HoangHa VIP</string>
+            <key>PayloadDisplayName</key>
+            <string>HoangHa VIP PC VPN</string>
+            <key>PayloadIdentifier</key>
+            <string>com.hoanghamod.vpn</string>
+            <key>PayloadType</key>
+            <string>com.apple.vpn.managed</string>
+            <key>PayloadUUID</key>
+            <string>98765432-1234-5678-9012-345678901234</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>UserDefinedName</key>
+            <string>HoangHa VIP PC Server</string>
+            <key>VPNType</key>
+            <string>L2TP</string>
+            <key>ServerAddress</key>
+            <string>{server_host}</string>
+        </dict>
+    </array>
+    <key>PayloadDisplayName</key>
+    <string>HoangHa VIP Server VPN Profile</string>
+    <key>PayloadIdentifier</key>
+    <string>com.hoanghamod.profile</string>
+    <key>PayloadRemovalDisallowed</key>
+    <false/>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadUUID</key>
+    <string>12345678-1234-5678-9012-123456789012</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+</dict>
+</plist>'''
+                body = mobileconfig_xml.encode('utf-8')
+                self.send_response(200)
+                self.send_header("Content-Type", "application/x-apple-aspen-config; charset=utf-8")
+                self.send_header("Content-Disposition", 'attachment; filename="HoangHaVIP.mobileconfig"')
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(body)
+                return
             elif path in ["/api/verify_key", "/api/key_status"]:
                 key_param = query_params.get("key", [""])[0].strip()
                 rem_sec = 604800  # Default 7 days (7 * 86400)
