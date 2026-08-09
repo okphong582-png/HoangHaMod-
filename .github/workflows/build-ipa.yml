@@ -18,15 +18,28 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Build Swift Package / App Executable
+      - name: Build iOS App with xcodebuild
         run: |
           cd ios-app
-          swift build -c release -Xswiftc -sdk -Xswiftc $(xcrun --sdk iphoneos --show-sdk-path) -Xswiftc -target -Xswiftc arm64-apple-ios15.0
+          xcodebuild build \
+            -scheme HoangHaMod \
+            -destination "generic/platform=iOS" \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            BUILD_DIR=../build_output
 
       - name: Package Payload and Create IPA
         run: |
-          mkdir -p Payload/HoangHaMod.app
-          cp -R ios-app/.build/release/HoangHaMod Payload/HoangHaMod.app/HoangHaMod 2>/dev/null || true
+          mkdir -p Payload
+          APP_PATH=$(find build_output -name "HoangHaMod.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            mkdir -p Payload/HoangHaMod.app
+            cp -R ios-app/.build/release/HoangHaMod Payload/HoangHaMod.app/HoangHaMod 2>/dev/null || true
+          else
+            cp -R "$APP_PATH" Payload/
+          fi
           zip -r HoangHaMod_v3.0_VIP.ipa Payload
 
       - name: Upload IPA Artifact
