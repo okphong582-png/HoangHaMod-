@@ -1,5 +1,7 @@
 import SwiftUI
-import UIPasteboard
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct MainDashboardView: View {
     @Binding var isLoggedIn: Bool
@@ -231,7 +233,9 @@ struct MainDashboardView: View {
     }
     
     private func copyToClipboard(_ text: String, label: String) {
+        #if canImport(UIKit)
         UIPasteboard.general.string = text
+        #endif
         triggerToast("Đã copy \(label)!")
     }
     

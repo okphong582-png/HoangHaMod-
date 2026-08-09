@@ -21,7 +21,7 @@ jobs:
       - name: Build Swift Package / App Executable
         run: |
           cd ios-app
-          swift build -c release
+          swift build -c release -Xswiftc -sdk -Xswiftc $(xcrun --sdk iphoneos --show-sdk-path) -Xswiftc -target -Xswiftc arm64-apple-ios15.0
 
       - name: Package Payload and Create IPA
         run: |

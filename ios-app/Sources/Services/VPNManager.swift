@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 
 class VPNManager: ObservableObject {
     static let shared = VPNManager()
@@ -44,9 +46,11 @@ class VPNManager: ObservableObject {
     }
     
     func getDeviceHWID() -> String {
+        #if canImport(UIKit)
         if let vendorId = UIDevice.current.identifierForVendor?.uuidString {
             return vendorId
         }
+        #endif
         return "IOS_DEVICE_" + UUID().uuidString.prefix(8)
     }
 }
