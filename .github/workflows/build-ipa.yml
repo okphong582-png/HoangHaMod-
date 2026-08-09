@@ -1,0 +1,36 @@
+name: Build HoangHaMod iOS IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ipa:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build Swift Package / App Executable
+        run: |
+          cd ios-app
+          swift build -c release
+
+      - name: Package Payload and Create IPA
+        run: |
+          mkdir -p Payload/HoangHaMod.app
+          cp -R ios-app/.build/release/HoangHaMod Payload/HoangHaMod.app/HoangHaMod 2>/dev/null || true
+          zip -r HoangHaMod_v3.0_VIP.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: HoangHaMod_v3.0_VIP.ipa
+          path: HoangHaMod_v3.0_VIP.ipa
