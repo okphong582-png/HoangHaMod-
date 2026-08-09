@@ -150,7 +150,8 @@ struct LoginView: View {
     }
     
     private func validateKey() {
-        guard !inputKey.trimmingCharacters(in: .whitespaces).isEmpty else {
+        let trimmedKey = inputKey.trimmingCharacters(in: .whitespaces)
+        guard !trimmedKey.isEmpty else {
             errorMessage = "Vui lòng nhập License Key!"
             return
         }
@@ -158,12 +159,44 @@ struct LoginView: View {
         isLoading = true
         errorMessage = ""
         
-        // Simulating verification handshake
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        var calculatedSeconds = 86400 * 7 // Default 7 days
+        let keyLower = trimmedKey.lowercased()
+        if keyLower.contains("1d") || keyLower.contains("1day") {
+            calculatedSeconds = 86400
+        } else if keyLower.contains("7d") || keyLower.contains("7day") || keyLower.contains("week") {
+            calculatedSeconds = 86400 * 7
+        } else if keyLower.contains("30d") || keyLower.contains("30day") || keyLower.contains("month") {
+            calculatedSeconds = 86400 * 30
+        }
+        
+        let cleanServerUrl = inputServerUrl.trimmingCharacters(in: .whitespaces)
+        let verifyEndpoint = "\(cleanServerUrl)/api/verify_key?key=\(trimmedKey)"
+        
+        if let verifyUrl = URL(string: verifyEndpoint) {
+            var request = URLRequest(url: verifyUrl)
+            request.timeoutInterval = 4.0
+            
+            let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    if let data = data,
+                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let remSec = json["remaining_seconds"] as? Int, remSec > 0 {
+                        self.remainingSeconds = remSec
+                    } else {
+                        self.remainingSeconds = calculatedSeconds
+                    }
+                    self.userKey = trimmedKey
+                    self.pcServerUrl = cleanServerUrl
+                    self.isLoggedIn = true
+                }
+            }
+            task.resume()
+        } else {
             self.isLoading = false
-            self.userKey = self.inputKey
-            self.pcServerUrl = self.inputServerUrl
-            self.remainingSeconds = 86400 * 30 // 30 Days default
+            self.remainingSeconds = calculatedSeconds
+            self.userKey = trimmedKey
+            self.pcServerUrl = cleanServerUrl
             self.isLoggedIn = true
         }
     }

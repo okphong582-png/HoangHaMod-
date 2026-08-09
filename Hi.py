@@ -693,6 +693,42 @@ class FastRemoteControlHandler(BaseHTTPRequestHandler):
                     "server_tunnel": tunnel_url_val,
                     "message": "Thiết bị iOS đã kết nối & đồng bộ luồng thành công!"
                 })
+            elif path in ["/api/verify_key", "/api/key_status"]:
+                key_param = query_params.get("key", [""])[0].strip()
+                rem_sec = 604800  # Default 7 days (7 * 86400)
+                
+                # Check key naming conventions or query Firebase
+                key_lower = key_param.lower()
+                if "1d" in key_lower or "1day" in key_lower:
+                    rem_sec = 86400
+                elif "7d" in key_lower or "7day" in key_lower or "hoang" in key_lower:
+                    rem_sec = 604800
+                elif "30d" in key_lower or "30day" in key_lower or "month" in key_lower:
+                    rem_sec = 2592000
+                
+                try:
+                    fb_url = "https://htgh-cbfa3-default-rtdb.firebaseio.com/keys.json"
+                    req = urllib.request.Request(fb_url, headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req, timeout=3, context=ssl_context) as resp:
+                        keys_data = json.loads(resp.read().decode('utf-8'))
+                        if keys_data and isinstance(keys_data, dict):
+                            for k_id, k_info in keys_data.items():
+                                if isinstance(k_info, dict) and k_info.get("key", "").strip().lower() == key_param.lower():
+                                    exp_ts = k_info.get("expiry_time", k_info.get("expires_at", 0))
+                                    if exp_ts > 0:
+                                        now_ts = int(time.time() * 1000)
+                                        rem_sec = max(0, int((exp_ts - now_ts) / 1000))
+                                    break
+                except Exception:
+                    pass
+
+                send_json({
+                    "status": "ok",
+                    "valid": True,
+                    "key": key_param,
+                    "remaining_seconds": rem_sec,
+                    "message": "Xác thực Key thành công!"
+                })
                 return
 
             elif path == "/status" or path.startswith("/status?") or path.startswith("/status/"):
